@@ -1,5 +1,4 @@
 using System;
-using System.Security.Cryptography;
 
 namespace AESExample
 {
@@ -7,22 +6,19 @@ namespace AESExample
     {
         public string Decrypt(byte[] ciphertext, byte[] key, byte[] iv)
         {
-            using (Aes aes = Aes.Create())
-            {
-                aes.Key = key;
-                aes.IV = iv;
+            CustomAes aes = new CustomAes(key, iv);
+            byte[] decryptedBytes = aes.Decrypt(ciphertext);
+            byte[] unpaddedBytes = RemovePadding(decryptedBytes);
 
-                byte[] decryptedBytes;
+            return Utf8Decoder.Decode(unpaddedBytes);
+        }
 
-                using (ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
-                {
-                    decryptedBytes = decryptor.TransformFinalBlock(ciphertext, 0, ciphertext.Length);
-                }
-
-                return Utf8Decoder.Decode(decryptedBytes);
-            }
+        private byte[] RemovePadding(byte[] input)
+        {
+            int paddingSize = input[input.Length - 1];
+            byte[] unpaddedInput = new byte[input.Length - paddingSize];
+            Array.Copy(input, unpaddedInput, unpaddedInput.Length);
+            return unpaddedInput;
         }
     }
 }
-
-

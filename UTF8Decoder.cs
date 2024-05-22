@@ -1,5 +1,3 @@
-using System;
-
 namespace AESExample
 {
     public static class Utf8Decoder
