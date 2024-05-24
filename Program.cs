@@ -1,71 +1,40 @@
-﻿// using System;
-// using System.Text;
+﻿﻿using System;
 
-// namespace AESExample
-// {
-// public class Program
-//     {
-//         private static byte[]? key;
-//         private static byte[]? iv;
-//         public static void Main(string[] args)
-//         {
-//             key =  GenerateRandomBytes(16);
-//             iv = GenerateRandomBytes(16);
+namespace AESExample
+{
+    class Program
+    {
+        static void Main()
+        {
+            // Example key (128-bit key)
+            byte[] key = new byte[16] {
+                0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
+                0xab, 0xf7, 0x4e, 0x35, 0x0b, 0x34, 0x78, 0x55
+            };
 
-//             Console.WriteLine("Key: " + Encoding.Default.GetString(key));
-//             Console.WriteLine("IV: " + Encoding.Default.GetString(iv));
+            // Example IV (128-bit)
+            byte[] iv = new byte[16] {
+                0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+            };
 
-//             while(true){
-//                 Console.WriteLine("Choose an option: (1) Send, (2) Receive, (q) Quit");
-//                 string option = Console.ReadLine() ?? string.Empty;
+            // Example plaintext (32 bytes)
+            byte[] plaintext = new byte[32] {
+                0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d,
+                0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34,
+                0x4a, 0x49, 0x6d, 0x4c, 0x2e, 0xa1, 0xe4, 0x9f,
+                0xb0, 0x3e, 0xcb, 0x3b, 0xe4, 0x57, 0x1e, 0x2d
+            };
 
-//                 if (option == "1")
-//                 {
-//                     Console.WriteLine("Enter plaintext:");
-//                     string plaintext = Console.ReadLine() ?? string.Empty;
-//                     Console.WriteLine($"Plaintext: {plaintext}");
+            CustomAes aes = new CustomAes(key, iv);
 
-//                     Sender sender = new Sender();
-//                     byte[] encrypted = sender.Encrypt(plaintext, key, iv);
-//                     string ciphertext = Convert.ToBase64String(encrypted);
+            Console.WriteLine("Plaintext: " + BitConverter.ToString(plaintext));
 
-//                     Console.WriteLine($"Ciphertext: {ciphertext}");
-//                 }
-//                 else if (option == "2")
-//                 {
-//                     Console.WriteLine("Enter ciphertext:");
-//                     string inputCiphertext = Console.ReadLine() ?? string.Empty;
-//                     byte[] ciphertext = Convert.FromBase64String(inputCiphertext);
+            byte[] ciphertext = aes.Encrypt(plaintext);
+            Console.WriteLine("Ciphertext: " + BitConverter.ToString(ciphertext));
 
-//                     // Decrypt the ciphertext
-//                     Receiver receiver = new Receiver();
-//                     byte[] decrypted = receiver.Decrypt(ciphertext, key, iv);
-
-//                     string plaintext = Encoding.UTF8.GetString(decrypted);
-//                     Console.WriteLine($"Decrypted text: {plaintext}");
-//                 }else if (option == "q"){
-//                     break;
-//                 }
-//             }
-//         }
-
-//         public static byte[] GenerateRandomBytes(int length)
-//         {
-//             byte[] bytes = new byte[length];
-//             new Random().NextBytes(bytes);
-//             return bytes;
-//         }
-
-//         private static byte[] Padding(string input)
-//         {
-//             int paddingSize = 16 - (input.Length % 16);
-//             byte[] paddedInput = new byte[input.Length + paddingSize];
-//             Array.Copy(Encoding.UTF8.GetBytes(input), paddedInput, input.Length);
-//             for (int i = input.Length; i < paddedInput.Length; i++)
-//             {
-//                 paddedInput[i] = (byte)paddingSize;
-//             }
-//             return paddedInput;
-//         }
-//     }
-// }
+            byte[] decrypted = aes.Decrypt(ciphertext);
+            Console.WriteLine("Decrypted: " + BitConverter.ToString(decrypted));
+        }
+    }
+}

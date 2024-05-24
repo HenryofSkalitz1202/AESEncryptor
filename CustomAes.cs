@@ -5,8 +5,12 @@ namespace AESExample
     public class CustomAes
     {
         private const int BlockSize = 16; // AES block size is 16 bytes (128 bits)
-        // S-box
-        private readonly byte[] SBox = [
+        private const int KeySize = 16; // AES-128 uses 16-byte (128-bit) key
+        private const int Nr = 10; // Number of rounds for AES-128
+        private const int Nk = 4; // Number of 32-bit words in the key for AES-128
+        private const int Nb = 4; // Number of columns (32-bit words) in the state
+
+        private readonly byte[] SBox = new byte[256]{
             0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
             0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
             0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
@@ -23,10 +27,9 @@ namespace AESExample
             0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
             0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
             0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
-        ];
+        };
 
-        // Inverse S-box
-        private readonly byte[] InvSBox = [
+        private readonly byte[] InvSBox = new byte[256]{
             0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
             0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
             0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
@@ -43,15 +46,34 @@ namespace AESExample
             0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef,
             0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
             0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
-        ];
+        };
+
+        private static readonly byte[] Rcon = new byte[256] {
+            0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        };
 
         public byte[] Key { get; set; }
         public byte[] IV { get; set; }
 
         public CustomAes(byte[] key, byte[] iv)
         {
-            if (key.Length != 16 && key.Length != 24 && key.Length != 32)
-                throw new ArgumentException("Key size must be 128, 192, or 256 bits.");
+            if (key.Length != KeySize)
+                throw new ArgumentException("Key size must be 128 bits.");
 
             if (iv.Length != BlockSize)
                 throw new ArgumentException("IV size must be 128 bits.");
@@ -66,13 +88,17 @@ namespace AESExample
                 throw new ArgumentException("Plaintext size must be a multiple of 128 bits.");
 
             byte[] ciphertext = new byte[plaintext.Length];
-            byte[] block = new byte[BlockSize];
+            byte[] xorBlock = new byte[BlockSize];
+            Array.Copy(IV, xorBlock, BlockSize);
 
             for (int i = 0; i < plaintext.Length; i += BlockSize)
             {
+                byte[] block = new byte[BlockSize];
                 Array.Copy(plaintext, i, block, 0, BlockSize);
-                EncryptBlock(block);
-                Array.Copy(block, 0, ciphertext, i, BlockSize);
+                XorBlocks(block, xorBlock, block);
+                byte[] encryptedBlock = EncryptBlock(block);
+                Array.Copy(encryptedBlock, 0, ciphertext, i, BlockSize);
+                Array.Copy(encryptedBlock, xorBlock, BlockSize);
             }
 
             return ciphertext;
@@ -84,162 +110,240 @@ namespace AESExample
                 throw new ArgumentException("Ciphertext size must be a multiple of 128 bits.");
 
             byte[] plaintext = new byte[ciphertext.Length];
-            byte[] block = new byte[BlockSize];
+            byte[] xorBlock = new byte[BlockSize];
+            Array.Copy(IV, xorBlock, BlockSize);
 
             for (int i = 0; i < ciphertext.Length; i += BlockSize)
             {
+                byte[] block = new byte[BlockSize];
                 Array.Copy(ciphertext, i, block, 0, BlockSize);
-                DecryptBlock(block);
-                Array.Copy(block, 0, plaintext, i, BlockSize);
+                byte[] decryptedBlock = DecryptBlock(block);
+                XorBlocks(decryptedBlock, xorBlock, decryptedBlock);
+                Array.Copy(decryptedBlock, 0, plaintext, i, BlockSize);
+                Array.Copy(block, xorBlock, BlockSize);
             }
 
             return plaintext;
         }
 
-        private void EncryptBlock(byte[] block)
+        private byte[] EncryptBlock(byte[] block)
         {
-            AddRoundKey(block, 0);
-
-            for (int round = 1; round <= 9; round++)
-            {
-                SubBytes(block);
-                ShiftRows(block);
-                MixColumns(block);
-                AddRoundKey(block, round);
-            }
-
-            SubBytes(block);
-            ShiftRows(block);
-            AddRoundKey(block, 10);
-        }
-
-        private void DecryptBlock(byte[] block)
-        {
-            AddRoundKey(block, 10);
-
-            for (int round = 9; round >= 1; round--)
-            {
-                InvShiftRows(block);
-                InvSubBytes(block);
-                AddRoundKey(block, round);
-                InvMixColumns(block);
-            }
-
-            InvShiftRows(block);
-            InvSubBytes(block);
-            AddRoundKey(block, 0);
-        }
-
-        private void SubBytes(byte[] block)
-        {
+            byte[,] state = new byte[4, 4];
             for (int i = 0; i < BlockSize; i++)
             {
-                block[i] = SBox[block[i]];
+                state[i % 4, i / 4] = block[i];
             }
-        }
 
-        private void InvSubBytes(byte[] block)
-        {
+            byte[,] roundKeys = KeyExpansion(Key);
+
+            AddRoundKey(state, roundKeys, 0);
+
+            for (int round = 1; round < Nr; round++)
+            {
+                SubBytes(state);
+                ShiftRows(state);
+                MixColumns(state);
+                AddRoundKey(state, roundKeys, round);
+            }
+
+            SubBytes(state);
+            ShiftRows(state);
+            AddRoundKey(state, roundKeys, Nr);
+
+            byte[] encryptedBlock = new byte[BlockSize];
             for (int i = 0; i < BlockSize; i++)
             {
-                block[i] = InvSBox[block[i]];
+                encryptedBlock[i] = state[i % 4, i / 4];
             }
+
+            return encryptedBlock;
         }
 
-        private void ShiftRows(byte[] block)
+        private byte[] DecryptBlock(byte[] block)
         {
-            byte temp = block[1];
-            block[1] = block[5];
-            block[5] = block[9];
-            block[9] = block[13];
-            block[13] = temp;
+            byte[,] state = new byte[4, 4];
+            for (int i = 0; i < BlockSize; i++)
+            {
+                state[i % 4, i / 4] = block[i];
+            }
 
-            temp = block[2];
-            byte temp2 = block[6];
-            block[2] = block[10];
-            block[6] = block[14];
-            block[10] = temp;
-            block[14] = temp2;
+            byte[,] roundKeys = KeyExpansion(Key);
 
-            temp = block[3];
-            temp2 = block[7];
-            byte temp3 = block[11];
-            block[3] = block[15];
-            block[7] = temp;
-            block[11] = temp2;
-            block[15] = temp3;
+            AddRoundKey(state, roundKeys, Nr);
+
+            for (int round = Nr - 1; round >= 1; round--)
+            {
+                InvShiftRows(state);
+                InvSubBytes(state);
+                AddRoundKey(state, roundKeys, round);
+                InvMixColumns(state);
+            }
+
+            InvShiftRows(state);
+            InvSubBytes(state);
+            AddRoundKey(state, roundKeys, 0);
+
+            byte[] decryptedBlock = new byte[BlockSize];
+            for (int i = 0; i < BlockSize; i++)
+            {
+                decryptedBlock[i] = state[i % 4, i / 4];
+            }
+
+            return decryptedBlock;
         }
 
-        private void InvShiftRows(byte[] block)
+        private byte[,] KeyExpansion(byte[] key)
         {
-            byte temp = block[13];
-            block[13] = block[9];
-            block[9] = block[5];
-            block[5] = block[1];
-            block[1] = temp;
+            byte[,] roundKeys = new byte[Nb * (Nr + 1), 4];
 
-            temp = block[2];
-            byte temp2 = block[6];
-            block[2] = block[10];
-            block[6] = block[14];
-            block[10] = temp;
-            block[14] = temp2;
+            for (int i = 0; i < Nk; i++)
+            {
+                roundKeys[i, 0] = key[4 * i];
+                roundKeys[i, 1] = key[4 * i + 1];
+                roundKeys[i, 2] = key[4 * i + 2];
+                roundKeys[i, 3] = key[4 * i + 3];
+            }
 
-            temp = block[3];
-            temp2 = block[7];
-            byte temp3 = block[11];
-            block[3] = block[15];
-            block[7] = temp;
-            block[11] = temp2;
-            block[15] = temp3;
+            for (int i = Nk; i < Nb * (Nr + 1); i++)
+            {
+                byte[] temp = { roundKeys[i - 1, 0], roundKeys[i - 1, 1], roundKeys[i - 1, 2], roundKeys[i - 1, 3] };
+
+                if (i % Nk == 0)
+                {
+                    temp = SubWord(RotWord(temp));
+                    temp[0] ^= Rcon[i / Nk];
+                }
+
+                for (int j = 0; j < 4; j++)
+                {
+                    roundKeys[i, j] = (byte)(roundKeys[i - Nk, j] ^ temp[j]);
+                }
+            }
+
+            return roundKeys;
         }
 
-        private void MixColumns(byte[] block)
+        private byte[] SubWord(byte[] word)
         {
             for (int i = 0; i < 4; i++)
             {
-                byte[] col = new byte[4];
-                for (int j = 0; j < 4; j++)
-                {
-                    col[j] = block[i * 4 + j];
-                }
-
-                block[i * 4 + 0] = (byte)(GaloisMultiply(col[0], 2) ^ GaloisMultiply(col[1], 3) ^ col[2] ^ col[3]);
-                block[i * 4 + 1] = (byte)(col[0] ^ GaloisMultiply(col[1], 2) ^ GaloisMultiply(col[2], 3) ^ col[3]);
-                block[i * 4 + 2] = (byte)(col[0] ^ col[1] ^ GaloisMultiply(col[2], 2) ^ GaloisMultiply(col[3], 3));
-                block[i * 4 + 3] = (byte)(GaloisMultiply(col[0], 3) ^ col[1] ^ col[2] ^ GaloisMultiply(col[3], 2));
+                word[i] = SBox[word[i]];
             }
+            return word;
         }
 
-        private void InvMixColumns(byte[] block)
+        private byte[] RotWord(byte[] word)
+        {
+            byte temp = word[0];
+            word[0] = word[1];
+            word[1] = word[2];
+            word[2] = word[3];
+            word[3] = temp;
+            return word;
+        }
+
+        private void AddRoundKey(byte[,] state, byte[,] roundKeys, int round)
         {
             for (int i = 0; i < 4; i++)
             {
-                byte[] col = new byte[4];
                 for (int j = 0; j < 4; j++)
                 {
-                    col[j] = block[i * 4 + j];
+                    state[j, i] ^= roundKeys[round * Nb + i, j];
                 }
-
-                block[i * 4 + 0] = (byte)(GaloisMultiply(col[0], 14) ^ GaloisMultiply(col[1], 11) ^ GaloisMultiply(col[2], 13) ^ GaloisMultiply(col[3], 9));
-                block[i * 4 + 1] = (byte)(GaloisMultiply(col[0], 9) ^ GaloisMultiply(col[1], 14) ^ GaloisMultiply(col[2], 11) ^ GaloisMultiply(col[3], 13));
-                block[i * 4 + 2] = (byte)(GaloisMultiply(col[0], 13) ^ GaloisMultiply(col[1], 9) ^ GaloisMultiply(col[2], 14) ^ GaloisMultiply(col[3], 11));
-                block[i * 4 + 3] = (byte)(GaloisMultiply(col[0], 11) ^ GaloisMultiply(col[1], 13) ^ GaloisMultiply(col[2], 9) ^ GaloisMultiply(col[3], 14));
             }
         }
 
-        private byte GaloisMultiply(byte a, byte b)
+        private void SubBytes(byte[,] state)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    state[i, j] = SBox[state[i, j]];
+                }
+            }
+        }
+
+        private void ShiftRows(byte[,] state)
+        {
+            for (int i = 1; i < 4; i++)
+            {
+                byte[] row = new byte[4];
+                for (int j = 0; j < 4; j++)
+                {
+                    row[j] = state[i, (j + i) % Nb];
+                }
+                for (int j = 0; j < 4; j++)
+                {
+                    state[i, j] = row[j];
+                }
+            }
+        }
+
+        private void MixColumns(byte[,] state)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                byte[] col = { state[0, i], state[1, i], state[2, i], state[3, i] };
+                state[0, i] = (byte)(GaloisMul(col[0], 2) ^ GaloisMul(col[1], 3) ^ col[2] ^ col[3]);
+                state[1, i] = (byte)(col[0] ^ GaloisMul(col[1], 2) ^ GaloisMul(col[2], 3) ^ col[3]);
+                state[2, i] = (byte)(col[0] ^ col[1] ^ GaloisMul(col[2], 2) ^ GaloisMul(col[3], 3));
+                state[3, i] = (byte)(GaloisMul(col[0], 3) ^ col[1] ^ col[2] ^ GaloisMul(col[3], 2));
+            }
+        }
+
+        private void InvSubBytes(byte[,] state)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    state[i, j] = InvSBox[state[i, j]];
+                }
+            }
+        }
+
+        private void InvShiftRows(byte[,] state)
+        {
+            for (int i = 1; i < 4; i++)
+            {
+                byte[] row = new byte[4];
+                for (int j = 0; j < 4; j++)
+                {
+                    row[(j + i) % Nb] = state[i, j];
+                }
+                for (int j = 0; j < 4; j++)
+                {
+                    state[i, j] = row[j];
+                }
+            }
+        }
+
+        private void InvMixColumns(byte[,] state)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                byte[] col = { state[0, i], state[1, i], state[2, i], state[3, i] };
+                state[0, i] = (byte)(GaloisMul(col[0], 14) ^ GaloisMul(col[1], 11) ^ GaloisMul(col[2], 13) ^ GaloisMul(col[3], 9));
+                state[1, i] = (byte)(GaloisMul(col[0], 9) ^ GaloisMul(col[1], 14) ^ GaloisMul(col[2], 11) ^ GaloisMul(col[3], 13));
+                state[2, i] = (byte)(GaloisMul(col[0], 13) ^ GaloisMul(col[1], 9) ^ GaloisMul(col[2], 14) ^ GaloisMul(col[3], 11));
+                state[3, i] = (byte)(GaloisMul(col[0], 11) ^ GaloisMul(col[1], 13) ^ GaloisMul(col[2], 9) ^ GaloisMul(col[3], 14));
+            }
+        }
+
+        private byte GaloisMul(byte a, byte b)
         {
             byte p = 0;
+            byte hiBitSet;
             for (int counter = 0; counter < 8; counter++)
             {
                 if ((b & 1) != 0)
                 {
                     p ^= a;
                 }
-                bool hiBitSet = (a & 0x80) != 0;
+                hiBitSet = (byte)(a & 0x80);
                 a <<= 1;
-                if (hiBitSet)
+                if (hiBitSet != 0)
                 {
                     a ^= 0x1b; // x^8 + x^4 + x^3 + x + 1
                 }
@@ -248,12 +352,11 @@ namespace AESExample
             return p;
         }
 
-        private void AddRoundKey(byte[] block, int round)
+        private void XorBlocks(byte[] block1, byte[] block2, byte[] output)
         {
-            // This is a placeholder, actual round key derivation logic is needed
             for (int i = 0; i < BlockSize; i++)
             {
-                block[i] ^= Key[i];
+                output[i] = (byte)(block1[i] ^ block2[i]);
             }
         }
     }
