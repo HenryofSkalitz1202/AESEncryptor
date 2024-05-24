@@ -98,10 +98,8 @@ namespace AESExample
 
         private void EncryptBlock(byte[] block)
         {
-            // Initial round key addition
             AddRoundKey(block, 0);
 
-            // Main rounds
             for (int round = 1; round <= 9; round++)
             {
                 SubBytes(block);
@@ -110,7 +108,6 @@ namespace AESExample
                 AddRoundKey(block, round);
             }
 
-            // Final round
             SubBytes(block);
             ShiftRows(block);
             AddRoundKey(block, 10);
@@ -118,10 +115,8 @@ namespace AESExample
 
         private void DecryptBlock(byte[] block)
         {
-            // Initial round key addition
             AddRoundKey(block, 10);
 
-            // Main rounds
             for (int round = 9; round >= 1; round--)
             {
                 InvShiftRows(block);
@@ -130,7 +125,6 @@ namespace AESExample
                 InvMixColumns(block);
             }
 
-            // Final round
             InvShiftRows(block);
             InvSubBytes(block);
             AddRoundKey(block, 0);
@@ -256,7 +250,7 @@ namespace AESExample
 
         private void AddRoundKey(byte[] block, int round)
         {
-            // Simplified for example, actual round keys should be generated
+            // This is a placeholder, actual round key derivation logic is needed
             for (int i = 0; i < BlockSize; i++)
             {
                 block[i] ^= Key[i];
@@ -264,4 +258,3 @@ namespace AESExample
         }
     }
 }
-
