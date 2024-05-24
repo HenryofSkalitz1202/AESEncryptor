@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿﻿using System.Text;
 
 namespace AESExample
 {
@@ -28,12 +28,40 @@ namespace AESExample
 
             CustomAes aes = new CustomAes(key, iv);
 
+            //string plaintextString = Encoding.UTF8.GetString(plaintext);
             Console.WriteLine("Plaintext: " + BitConverter.ToString(plaintext));
 
             byte[] ciphertext = aes.Encrypt(plaintext);
             Console.WriteLine("Ciphertext: " + BitConverter.ToString(ciphertext));
 
             byte[] decrypted = aes.Decrypt(ciphertext);
+            Console.WriteLine("Decrypted: " + BitConverter.ToString(decrypted));
+
+            string normalString = "Hello, World!"; // Your normal string
+            byte[] byteArray = new byte[32];
+
+            // Convert the string to a byte array using UTF-8 encoding
+            byte[] stringBytes = Encoding.UTF8.GetBytes(normalString);
+
+            // Copy the string bytes to the byte array
+            Array.Copy(stringBytes, byteArray, Math.Min(stringBytes.Length, byteArray.Length));
+
+            // Calculate padding size
+            int paddingSize = byteArray.Length - stringBytes.Length;
+            byte padValue = (byte)paddingSize;
+
+            // Apply PKCS#7 padding
+            for (int i = stringBytes.Length; i < byteArray.Length; i++)
+            {
+                byteArray[i] = padValue;
+            }
+
+            Console.WriteLine("\nInput: " + BitConverter.ToString(byteArray));
+
+            ciphertext = aes.Encrypt(byteArray);
+            Console.WriteLine("Ciphertext: " + BitConverter.ToString(ciphertext));
+
+            decrypted = aes.Decrypt(ciphertext);
             Console.WriteLine("Decrypted: " + BitConverter.ToString(decrypted));
         }
     }
