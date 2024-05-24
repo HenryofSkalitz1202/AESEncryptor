@@ -37,8 +37,8 @@ namespace AESExample
             byte[] decrypted = aes.Decrypt(ciphertext);
             Console.WriteLine("Decrypted: " + BitConverter.ToString(decrypted));
 
-            string normalString = "Hello, World!"; // Your normal string
-            byte[] byteArray = new byte[32];
+            string normalString = "Æ7ÞäaóÖg1ç|þÜ`[b#3I¦|H$Áe²+l%òÓ)¶KL¤Û)I$ $ÌRfIi{#f­¤Éµ"; // Your normal string
+            byte[] byteArray = new byte[64];
 
             // Convert the string to a byte array using UTF-8 encoding
             byte[] stringBytes = Encoding.UTF8.GetBytes(normalString);
@@ -56,13 +56,17 @@ namespace AESExample
                 byteArray[i] = padValue;
             }
 
-            Console.WriteLine("\nInput: " + BitConverter.ToString(byteArray));
+            //string plaintextString = Encoding.UTF8.GetString(plaintext);
+            //Console.WriteLine("\nInput: " + BitConverter.ToString(byteArray));
+            //Æ7ÞäaóÖg1ç|þÜ`[b#3I¦|H$Áe²+l%òÓ)¶KL¤Û)I$ $ÌRfIi{#f­¤Éµ
+            Console.WriteLine("\nInput: " + Encoding.UTF8.GetString(byteArray));
 
             ciphertext = aes.Encrypt(byteArray);
             Console.WriteLine("Ciphertext: " + BitConverter.ToString(ciphertext));
 
             decrypted = aes.Decrypt(ciphertext);
-            Console.WriteLine("Decrypted: " + BitConverter.ToString(decrypted));
+            //Console.WriteLine("Decrypted: " + BitConverter.ToString(decrypted));
+            Console.WriteLine("Decrypted: " + Encoding.UTF8.GetString(decrypted));
         }
     }
 }
