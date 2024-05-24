@@ -1,73 +1,74 @@
 ﻿using System;
+using System.Text;
 
 namespace AESExample
 {
-    class Program
+public class Program
     {
-        static void Main(string[] args)
+        private static byte[]? key;
+        private static byte[]? iv;
+        public static void Main(string[] args)
         {
-            while (true)
-            {
-                Console.WriteLine("Choose an option: (1) Send, (2) Receive, (q) Quit");
-                string choice = Console.ReadLine() ?? string.Empty;
+            key =  GenerateRandomBytes(32);
+            iv = GenerateRandomBytes(16);
 
-                if (choice == "1")
+            Console.WriteLine("Key: " + Encoding.Default.GetString(key));
+            Console.WriteLine("IV: " + Encoding.Default.GetString(iv));
+
+            while(true){
+                Console.WriteLine("Choose an option: (1) Send, (2) Receive, (q) Quit");
+                string option = Console.ReadLine() ?? string.Empty;
+
+                if (option == "1")
                 {
-                    Send();
+                    Console.WriteLine("Enter plaintext:");
+                    string plaintext = Console.ReadLine() ?? string.Empty;
+                    Console.WriteLine($"Plaintext: {plaintext}");
+
+                    // Encrypt the plaintext (you need to implement encryption similar to your decryption)
+                    // 
+                    CustomAes aes = new(key, iv);
+                    byte[] plaintextBytes = Padding(plaintext);
+                    byte[] encrypted = aes.Encrypt(plaintextBytes);
+                    string ciphertext = Convert.ToBase64String(encrypted);
+
+                    Console.WriteLine($"Ciphertext: {ciphertext}");
                 }
-                else if (choice == "2")
+                else if (option == "2")
                 {
-                    Receive();
-                }
-                else if (choice.Equals("q", StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine("Exiting...");
+                    Console.WriteLine("Enter ciphertext:");
+                    string inputCiphertext = Console.ReadLine() ?? string.Empty;
+                    byte[] ciphertext = Convert.FromBase64String(inputCiphertext);
+
+                    // Decrypt the ciphertext
+                    Receiver receiver = new Receiver();
+                    byte[] decrypted = receiver.Decrypt(ciphertext, key, iv);
+
+                    string plaintext = Encoding.UTF8.GetString(decrypted);
+                    Console.WriteLine($"Decrypted text: {plaintext}");
+                }else if (option == "q"){
                     break;
                 }
-                else
-                {
-                    Console.WriteLine("Invalid choice. Please enter 1, 2, or q to quit.");
-                }
             }
         }
 
-        static void Send()
+        public static byte[] GenerateRandomBytes(int length)
         {
-            Sender sender = new Sender();
-
-            Console.WriteLine("Enter plaintext: ");
-            string plaintext = Console.ReadLine() ?? string.Empty;
-
-            (byte[] ciphertext, byte[] key, byte[] iv) = sender.Encrypt(plaintext);
-
-            // Display the results
-            Console.WriteLine($"Plaintext: {plaintext}");
-            Console.WriteLine($"Ciphertext: {Convert.ToBase64String(ciphertext)}");
-
-            // Save the key and IV for the receiver
-            KeyStorage.Key = key;
-            KeyStorage.IV = iv;
+            byte[] bytes = new byte[length];
+            new Random().NextBytes(bytes);
+            return bytes;
         }
 
-        static void Receive()
+        private static byte[] Padding(string input)
         {
-            Receiver receiver = new Receiver();
-
-            Console.WriteLine("Enter ciphertext: ");
-            byte[] ciphertext = Convert.FromBase64String(Console.ReadLine() ?? string.Empty);
-
-            if (KeyStorage.Key == null || KeyStorage.IV == null)
+            int paddingSize = 16 - (input.Length % 16);
+            byte[] paddedInput = new byte[input.Length + paddingSize];
+            Array.Copy(Encoding.UTF8.GetBytes(input), paddedInput, input.Length);
+            for (int i = input.Length; i < paddedInput.Length; i++)
             {
-                Console.WriteLine("Key and IV are not set. Please run the sender first.");
-                return;
+                paddedInput[i] = (byte)paddingSize;
             }
-
-            string decryptedText = receiver.Decrypt(ciphertext, KeyStorage.Key, KeyStorage.IV);
-
-            // Display the results
-            Console.WriteLine($"Decrypted text: {decryptedText}");
+            return paddedInput;
         }
     }
 }
-
-
