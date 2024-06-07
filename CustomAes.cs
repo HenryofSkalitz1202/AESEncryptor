@@ -1,6 +1,6 @@
 using System;
 
-namespace AESExample
+namespace Test
 {
     public class CustomAes
     {
@@ -361,4 +361,3 @@ namespace AESExample
         }
     }
 }
-
