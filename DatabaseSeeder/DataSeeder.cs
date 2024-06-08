@@ -26,15 +26,15 @@ namespace Test
             CREATE TABLE IF NOT EXISTS `biodata` (
               `NIK` TEXT NOT NULL,
               `nama` TEXT NULL,
-              `tempat_lahir` VARCHAR(255) NULL,
-              `tanggal_lahir` DATE NULL,
+              `tempat_lahir` TEXT NULL,
+              `tanggal_lahir` TEXT NULL,
               `jenis_kelamin` ENUM('Laki-Laki','Perempuan') NULL,
-              `golongan_darah` VARCHAR(5) NULL,
-              `alamat` VARCHAR(255) NULL,
-              `agama` VARCHAR(50) NULL,
+              `golongan_darah` ENUM('O','A','AB','B') NULL,
+              `alamat` TEXT NULL,
+              `agama` ENUM('Islam','Kristen','Katolik','Hindu','Buddha') NULL,
               `status_perkawinan` ENUM('Belum Menikah','Menikah','Cerai') NULL,
-              `pekerjaan` VARCHAR(100) NULL,
-              `kewarganegaraan` VARCHAR(50) NULL,
+              `pekerjaan` TEXT NULL,
+              `kewarganegaraan` ENUM('WNI','WNA') NULL,
               PRIMARY KEY (`NIK`(255))
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ";
@@ -48,7 +48,7 @@ namespace Test
             string query = @"
             CREATE TABLE IF NOT EXISTS `sidik_jari` (
               `berkas_citra` TEXT NULL,
-              `nama` VARCHAR(100) NULL,
+              `realName` TEXT NULL,
               `path` TEXT NOT NULL,
               PRIMARY KEY (`path`(255))
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -381,7 +381,7 @@ namespace Test
                 var imageFiles = Directory.GetFiles(imageFolder, "*.BMP");
                 var insertQueries = new List<string>();
 
-                var biodataRecords = new List<(string, string, string, DateTime, string, string, string, string, string, string, string)>();
+                var biodataRecords = new List<(string, string, string, string, string, string, string, string, string, string, string)>();
                 var sidikJariRecords = new List<(string, string, string)>();
                 var uniquePaths = new HashSet<string>();
 
@@ -400,26 +400,55 @@ namespace Test
                         NIKbyteArray[j] = padValue;
                     }
                     string NIK = BitConverter.ToString(aes.Encrypt(NIKbyteArray));
-                    // Console.WriteLine("Generated: " + generatorNIK);
-                    // Console.WriteLine("Decrypted: " + Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(NIK))).Substring(0, 16));
+                    // Console.WriteLine("Generated NIK: " + generatorNIK);
+                    // Console.WriteLine("Decrypted NIK: " + Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(NIK))).Substring(0, 16));
 
                     string realName = GenerateUniqueName(fake);
                     string nama = GenerateRandomCorruptName(realName);
                     byte[] namaByteArray = new byte[64];
                     byte[] namaBytes = Encoding.UTF8.GetBytes(nama);
                     Array.Copy(namaBytes, namaByteArray, Math.Min(namaBytes.Length, namaByteArray.Length));
-                    paddingSize = namaByteArray.Length - namaBytes.Length;
 
                     for (int j = namaBytes.Length; j < namaByteArray.Length; j++)
                     {
-                        namaByteArray[j] = padValue;
+                        namaByteArray[j] = 0;
                     }
-                    // Console.WriteLine("Generated: " + nama);
+
+                    //Console.WriteLine("Generated nama: " + nama);
                     nama = BitConverter.ToString(aes.Encrypt(namaByteArray));
-                    // Console.WriteLine("Decrypted: " + Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(nama))).TrimEnd('0'));
+                    //string decryptedNama = Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(nama)));
+                    //Console.WriteLine("Decrypted nama: " + decryptedNama.TrimEnd('0'));
 
                     string tempat_lahir = fake.Address.City();
+                    byte[] tempatLahirByteArray = new byte[64];
+                    byte[] tempatLahirBytes = Encoding.UTF8.GetBytes(tempat_lahir);
+                    Array.Copy(tempatLahirBytes, tempatLahirByteArray, Math.Min(tempatLahirBytes.Length, tempatLahirByteArray.Length));
+
+                    for (int j = tempatLahirBytes.Length; j < tempatLahirByteArray.Length; j++)
+                    {
+                        tempatLahirByteArray[j] = 0;
+                    }
+                    tempat_lahir = BitConverter.ToString(aes.Encrypt(tempatLahirByteArray));
+
                     DateTime tanggal_lahir = fake.Date.Past(50, DateTime.Now.AddYears(-18));
+                    string day = tanggal_lahir.Day.ToString();
+                    string month = tanggal_lahir.Month.ToString();
+                    string year = tanggal_lahir.Year.ToString();
+                    string tanggalLahir = year + "-" + month + "-" + day;
+                    byte[] tanggalLahirByteArray = new byte[64];
+                    byte[] tanggalLahirBytes = Encoding.UTF8.GetBytes(tanggalLahir);
+                    Array.Copy(tanggalLahirBytes, tanggalLahirByteArray, Math.Min(tanggalLahirBytes.Length, tanggalLahirByteArray.Length));
+
+                    for (int j = tanggalLahirBytes.Length; j < tanggalLahirByteArray.Length; j++)
+                    {
+                        tanggalLahirByteArray[j] = 0;
+                    }
+                    //Console.WriteLine("Generated TanggalLahir: " + tanggalLahir);
+                    tanggalLahir = BitConverter.ToString(aes.Encrypt(tanggalLahirByteArray));
+                    //string decryptedTanggalLahir = Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(tanggalLahir)));
+                    //Console.WriteLine("Decrypted Tanggal Lahir: " + decryptedTanggalLahir);
+
+
                     string jenis_kelamin = fake.PickRandom("Laki-Laki", "Perempuan");
                     string golongan_darah = fake.PickRandom("A", "B", "AB", "O");
 
@@ -427,22 +456,45 @@ namespace Test
                     byte[] alamatByteArray = new byte[64];
                     byte[] alamatBytes = Encoding.UTF8.GetBytes(alamat);
                     Array.Copy(alamatBytes, alamatByteArray, Math.Min(alamatBytes.Length, alamatByteArray.Length));
-                    paddingSize = alamatByteArray.Length - alamatBytes.Length;
 
-                    for(int j = alamatBytes.Length; j < alamatByteArray.Length; j++){
-                        alamatByteArray[j] = padValue;
+                    for (int j = alamatBytes.Length; j < alamatByteArray.Length; j++){
+                        alamatByteArray[j] = 0;
                     }
-                    // Console.WriteLine("Generated: " + alamat);
+                    //Console.WriteLine("Generated alamat: " + alamat);
                     alamat = BitConverter.ToString(aes.Encrypt(alamatByteArray));
-                    // Console.WriteLine("Decrypted: " + Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(alamat))).TrimEnd('0'));
+                    //string decryptedAlamat = Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(alamat)));
+                    //Console.WriteLine("Decrypted alamat: " + decryptedAlamat.TrimEnd('0'));
 
                     string agama = fake.PickRandom("Islam", "Kristen", "Katolik", "Hindu", "Buddha");
                     string status_perkawinan = fake.PickRandom("Belum Menikah", "Menikah", "Cerai");
+
                     string pekerjaan = fake.Name.JobTitle();
+                    byte[] pekerjaanByteArray = new byte[64];
+                    byte[] pekerjaanBytes = Encoding.UTF8.GetBytes(pekerjaan);
+                    Array.Copy(pekerjaanBytes, pekerjaanByteArray, Math.Min(pekerjaanBytes.Length, pekerjaanByteArray.Length));
+
+                    for (int j = pekerjaanBytes.Length; j < pekerjaanByteArray.Length; j++){
+                        pekerjaanByteArray[j] = 0;
+                    }
+                    //Console.WriteLine("Pekerjaan: " + pekerjaan);
+                    pekerjaan = BitConverter.ToString(aes.Encrypt(pekerjaanByteArray));
+
                     string kewarganegaraan = fake.PickRandom("WNI", "WNA");
 
-                    var biodataData = (NIK, nama, tempat_lahir, tanggal_lahir, jenis_kelamin, golongan_darah, alamat, agama, status_perkawinan, pekerjaan, kewarganegaraan);
+                    var biodataData = (NIK, nama, tempat_lahir, tanggalLahir, jenis_kelamin, golongan_darah, alamat, agama, status_perkawinan, pekerjaan, kewarganegaraan);
                     biodataRecords.Add(biodataData);
+
+                    byte[] realNameByteArray = new byte[64];
+                    byte[] realNameBytes = Encoding.UTF8.GetBytes(realName);
+                    Array.Copy(realNameBytes, realNameByteArray, Math.Min(realNameBytes.Length, realNameByteArray.Length));
+
+                    for(int k = realNameBytes.Length; k < realNameByteArray.Length; k++){
+                        realNameByteArray[k] = 0;
+                    }
+                    //Console.WriteLine("Generated real name: " + realName);
+                    realName = BitConverter.ToString(aes.Encrypt(realNameByteArray));
+                    //string decryptedRealName = Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(realName)));
+                    //Console.WriteLine("Decrypted Real Name: " + decryptedRealName.TrimEnd('0'));
 
                     int remainingRecords = imageFiles.Length - i;
                     int rand = fake.Random.Number(1, 5);
@@ -451,22 +503,31 @@ namespace Test
                     {
                         string bmpFile = imageFiles[i + j];
                         string path = Path.Combine("data", Path.GetFileName(bmpFile));
+                        byte[] pathByteArray = new byte[64];
+                        byte[] pathBytes = Encoding.UTF8.GetBytes(path);
+                        Array.Copy(pathBytes, pathByteArray, Math.Min(pathBytes.Length, pathByteArray.Length));
+
+                        for(int k = pathBytes.Length; k < pathByteArray.Length; k++){
+                            pathByteArray[k] = 0;
+                        }
+                        path = BitConverter.ToString(aes.Encrypt(pathByteArray));
 
                         // Assuming image_ascii is a method to convert image to ASCII, replace this with actual logic
                         string berkas_citra = AsciiConverter.ImageToAscii(Path.Combine(bmpFile));
 
                         if (!uniquePaths.Contains(path))
                         {
-                            byte[] berkasCitraByteArray = new byte[64];
+                            byte[] berkasCitraByteArray = new byte[2304];
                             byte[] berkasCitraBytes = Encoding.UTF8.GetBytes(berkas_citra);
                             Array.Copy(berkasCitraBytes, berkasCitraByteArray, Math.Min(berkasCitraBytes.Length, berkasCitraByteArray.Length));
-                            paddingSize = berkasCitraByteArray.Length - berkasCitraBytes.Length;
-                            for(int k = alamatBytes.Length; k < alamatByteArray.Length; k++){
-                                berkasCitraByteArray[k] = padValue;
+                            
+                            for(int k = berkasCitraBytes.Length; k < berkasCitraByteArray.Length; k++){
+                                berkasCitraByteArray[k] = 0;
                             }
-                            Console.WriteLine("Generated: " + berkas_citra);
+                            //Console.WriteLine("Generated berkas: " + berkas_citra);
                             berkas_citra = BitConverter.ToString(aes.Encrypt(berkasCitraByteArray));
-                            Console.WriteLine("Decrypted: " + Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(berkas_citra))));
+                            //string decryptedBerkas = Encoding.UTF8.GetString(aes.Decrypt(ConvertHexStringToByteArray(berkas_citra)));
+                            //Console.WriteLine("Decrypted berkas: " + decryptedBerkas.TrimEnd('0'));
 
                             var sidikJariData = (berkas_citra, realName, path);
                             sidikJariRecords.Add(sidikJariData);
@@ -479,7 +540,7 @@ namespace Test
                     }
 
                     i += randomCount;
-                    //Console.WriteLine($"Generated {i}/{imageFiles.Length} records");
+                    Console.WriteLine($"Generated {i}/{imageFiles.Length} records");
                 }
 
                 // Now insert the generated data into the database
@@ -491,33 +552,33 @@ namespace Test
                             INSERT INTO biodata (
                                 NIK, nama, tempat_lahir, tanggal_lahir, jenis_kelamin, golongan_darah,
                                 alamat, agama, status_perkawinan, pekerjaan, kewarganegaraan
-                            ) VALUES (@NIK, @nama, @tempat_lahir, @tanggal_lahir, @jenis_kelamin, @golongan_darah,
+                            ) VALUES (@NIK, @nama, @tempat_lahir, @tanggalLahir, @jenis_kelamin, @golongan_darah,
                                 @alamat, @agama, @status_perkawinan, @pekerjaan, @kewarganegaraan)
                         ";
 
                         var insertSidikJari = @"
-                            INSERT INTO sidik_jari (berkas_citra, nama, path) VALUES (@berkas_citra, @nama, @path)
+                            INSERT INTO sidik_jari (berkas_citra, realName, path) VALUES (@berkas_citra, @realName, @path)
                         ";
 
                         command.CommandText = insertBiodata;
-                        command.Parameters.Add("@NIK", MySqlDbType.VarChar);
-                        command.Parameters.Add("@nama", MySqlDbType.VarChar);
-                        command.Parameters.Add("@tempat_lahir", MySqlDbType.VarChar);
-                        command.Parameters.Add("@tanggal_lahir", MySqlDbType.Date);
+                        command.Parameters.Add("@NIK", MySqlDbType.Text);
+                        command.Parameters.Add("@nama", MySqlDbType.Text);
+                        command.Parameters.Add("@tempat_lahir", MySqlDbType.Text);
+                        command.Parameters.Add("@tanggalLahir", MySqlDbType.Text);
                         command.Parameters.Add("@jenis_kelamin", MySqlDbType.Enum);
-                        command.Parameters.Add("@golongan_darah", MySqlDbType.VarChar);
-                        command.Parameters.Add("@alamat", MySqlDbType.VarChar);
-                        command.Parameters.Add("@agama", MySqlDbType.VarChar);
+                        command.Parameters.Add("@golongan_darah", MySqlDbType.Enum);
+                        command.Parameters.Add("@alamat", MySqlDbType.Text);
+                        command.Parameters.Add("@agama", MySqlDbType.Enum);
                         command.Parameters.Add("@status_perkawinan", MySqlDbType.Enum);
-                        command.Parameters.Add("@pekerjaan", MySqlDbType.VarChar);
-                        command.Parameters.Add("@kewarganegaraan", MySqlDbType.VarChar);
+                        command.Parameters.Add("@pekerjaan", MySqlDbType.Text);
+                        command.Parameters.Add("@kewarganegaraan", MySqlDbType.Enum);
 
                         foreach (var biodata in biodataRecords)
                         {
                             command.Parameters["@NIK"].Value = biodata.Item1;
                             command.Parameters["@nama"].Value = biodata.Item2;
                             command.Parameters["@tempat_lahir"].Value = biodata.Item3;
-                            command.Parameters["@tanggal_lahir"].Value = biodata.Item4;
+                            command.Parameters["@tanggalLahir"].Value = biodata.Item4;
                             command.Parameters["@jenis_kelamin"].Value = biodata.Item5;
                             command.Parameters["@golongan_darah"].Value = biodata.Item6;
                             command.Parameters["@alamat"].Value = biodata.Item7;
@@ -532,13 +593,13 @@ namespace Test
                         command.CommandText = insertSidikJari;
                         command.Parameters.Clear();
                         command.Parameters.Add("@berkas_citra", MySqlDbType.LongText);
-                        command.Parameters.Add("@nama", MySqlDbType.VarChar);
+                        command.Parameters.Add("@realName", MySqlDbType.VarChar);
                         command.Parameters.Add("@path", MySqlDbType.VarChar);
 
                         foreach (var sidikJari in sidikJariRecords)
                         {
                             command.Parameters["@berkas_citra"].Value = sidikJari.Item1;
-                            command.Parameters["@nama"].Value = sidikJari.Item2;
+                            command.Parameters["@realName"].Value = sidikJari.Item2;
                             command.Parameters["@path"].Value = sidikJari.Item3;
 
                             command.ExecuteNonQuery();
